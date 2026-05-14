@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Health Log</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Health Log">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="theme-color" content="#2D6A4F">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: #E2DDD6;
+    --text: #1A1714;
+    --text2: #6B6560;
+    --text3: #A8A29C;
+    --green: #2D6A4F;
+    --green-light: #D8F3DC;
+    --green-text: #1B4332;
+    --amber: #B45309;
+    --amber-light: #FEF3C7;
+    --amber-text: #78350F;
+    --red: #B91C1C;
+    --red-light: #FEE2E2;
+    --red-text: #7F1D1D;
+    --blue: #1D4ED8;
+    --blue-light: #DBEAFE;
+    --blue-text: #1E3A8A;
+    --accent: #2D6A4F;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); }
+  .header-date { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .streak-badge {
+    background: var(--green-light);
+    color: var(--green-text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.01em;
+  }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; gap: 14px; padding: 16px 16px 100px; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* SECTION LABEL */
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* METRIC ROW */
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .metric {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 8px;
+    text-align: center;
+  }
+  .metric-val { font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .metric-lbl { font-size: 10px; color: var(--text2); margin-top: 3px; }
+
+  /* MEAL ROWS */
+  .meal-item { padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .meal-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .meal-item:first-child { padding-top: 0; }
+  .meal-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .meal-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .meal-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .meal-btns { display: flex; gap: 5px; flex-shrink: 0; }
+
+  /* PILLS */
+  .pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .pill:active { transform: scale(0.95); }
+  .pill-on { background: var(--green-light); color: var(--green-text); }
+  .pill-partial { background: var(--amber-light); color: var(--amber-text); }
+  .pill-off { background: var(--red-light); color: var(--red-text); }
+  .pill-neutral { background: var(--surface2); color: var(--text2); }
+
+  /* FLAG NOTE */
+  .flag-note {
+    display: none;
+    margin-top: 10px;
+    animation: slideDown 0.2s ease;
+  }
+  .flag-note.open { display: block; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .flag-note-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+  .flag-note textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+  }
+  .flag-note textarea:focus { border-color: var(--accent); }
+  .flag-note textarea::placeholder { color: var(--text3); }
+
+  /* TOGGLES */
+  .tog-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tog {
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tog:active { transform: scale(0.97); }
+  .tog.active-green { background: var(--green-light); color: var(--green-text); border-color: #A7F3D0; }
+  .tog.active-blue { background: var(--blue-light); color: var(--blue-text); border-color: #BFDBFE; }
+  .tog-section-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+
+  /* WATER */
+  .water-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .water-count-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .water-dots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .wdot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text3);
+    font-size: 14px;
+  }
+  .wdot:active { transform: scale(0.88); }
+  .wdot.filled { background: var(--blue-light); border-color: #93C5FD; color: var(--blue-text); }
+  .water-msg { font-size: 11px; color: var(--text3); margin-top: 8px; }
+  .water-msg.goal { color: var(--green); font-weight: 500; }
+
+  /* DAILY NOTE */
+  .daily-note {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+  }
+  .daily-note:focus { border-color: var(--accent); }
+  .daily-note::placeholder { color: var(--text3); }
+
+  /* SAVE BUTTON */
+  .save-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .save-btn:active { opacity: 0.88; transform: scale(0.99); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* STREAKS SCREEN */
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 8px; }
+  .wk-cell { border-radius: 8px; padding: 7px 3px; text-align: center; }
+  .wk-day { font-size: 9px; color: var(--text3); margin-bottom: 4px; font-weight: 500; }
+  .wk-val { font-size: 11px; font-weight: 600; }
+  .wk-on { background: var(--green-light); } .wk-on .wk-val { color: var(--green-text); }
+  .wk-part { background: var(--amber-light); } .wk-part .wk-val { color: var(--amber-text); }
+  .wk-empty { background: var(--surface2); } .wk-empty .wk-val { color: var(--text3); }
+  .wk-today { outline: 2px solid var(--green); outline-offset: 1px; }
+
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .stat-row:first-child { padding-top: 0; }
+  .stat-name { font-size: 13px; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text3); }
+  .stat-val { font-size: 13px; font-weight: 600; text-align: right; }
+  .val-green { color: var(--green); }
+  .val-red { color: var(--red); }
+  .val-amber { color: var(--amber); }
+
+  .streak-dots { display: flex; gap: 4px; }
+  .sdot { flex: 1; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; }
+  .sdot-on { background: var(--green-light); color: var(--green-text); }
+  .sdot-off { background: var(--surface2); color: var(--text3); }
+  .sdot-today { outline: 2px solid var(--green); outline-offset: 1px; }
+
+  .mini-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .mini-bar-label { font-size: 11px; color: var(--text2); width: 28px; }
+  .mini-bar-track { flex: 1; height: 7px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .mini-bar-num { font-size: 11px; font-weight: 600; color: var(--text); width: 30px; text-align: right; }
+
+  /* HISTORY SCREEN */
+  .compare-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .compare-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .compare-row:first-child { padding-top: 0; }
+  .compare-name { font-size: 13px; color: var(--text); font-weight: 500; }
+  .compare-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .compare-right { text-align: right; }
+  .compare-val { font-size: 14px; font-weight: 600; }
+  .compare-prev { font-size: 11px; color: var(--text3); }
+
+  .flag-entry { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .flag-entry:last-child { border-bottom: none; padding-bottom: 0; }
+  .flag-entry:first-child { padding-top: 0; }
+  .flag-entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+  .flag-entry-date { font-size: 12px; font-weight: 600; color: var(--text); }
+  .flag-entry-note { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+  .outline-btn {
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    color: var(--green);
+    border: 1.5px solid var(--green);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .outline-btn:hover { background: var(--green-light); }
+
+  /* NAV */
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 16px;
+    z-index: 10;
+  }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 5px 0; }
+  .nav-icon { font-size: 22px; color: var(--text3); transition: color 0.15s; }
+  .nav-label { font-size: 10px; font-weight: 500; color: var(--text3); transition: color 0.15s; }
+  .nav-item.active .nav-icon,
+  .nav-item.active .nav-label { color: var(--green); }
+
+  /* empty state */
+  .empty-state { text-align: center; padding: 24px; color: var(--text3); font-size: 13px; }
+
+  /* month tabs */
+  .month-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+  .month-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .month-tab.active { background: var(--green-light); color: var(--green-text); border-color: #A7F3D0; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-title">My health log</div>
+        <div class="header-date" id="headerDate"></div>
+      </div>
+      <div class="streak-badge" id="streakBadge">🔥 0-day streak</div>
+    </div>
+  </div>
+
+  <!-- LOG SCREEN -->
+  <div class="screen active" id="screen-log">
+
+    <div>
+      <div class="label">Today's score</div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" id="scoreMeals">0/4</div><div class="metric-lbl">On plan</div></div>
+        <div class="metric"><div class="metric-val" id="scoreWater">0/10</div><div class="metric-lbl">Water glasses</div></div>
+        <div class="metric"><div class="metric-val" id="scoreWorkout">—</div><div class="metric-lbl">Workout</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Meals — approved foods</div>
+      <div class="card" id="mealsCard">
+        <!-- generated by JS -->
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Workout</div>
+      <div class="card">
+        <div class="tog-section-label">Walk type</div>
+        <div class="tog-group" id="walkGroup">
+          <div class="tog" data-group="walk" data-val="none" onclick="pickTog(this)">No walk today</div>
+          <div class="tog" data-group="walk" data-val="moderate" onclick="pickTog(this)">Moderate</div>
+          <div class="tog" data-group="walk" data-val="uphill" onclick="pickTog(this)">Uphill</div>
+        </div>
+        <div class="tog-section-label" style="margin-top:14px">Strength training</div>
+        <div class="tog-group" id="strengthGroup">
+          <div class="tog" data-group="strength" data-val="no" onclick="pickTog(this)">No</div>
+          <div class="tog" data-group="strength" data-val="yes" onclick="pickTog(this)">Yes — done</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Water intake</div>
+      <div class="card">
+        <div class="water-header">
+          <div class="tog-section-label" style="margin:0">Tap to log glasses</div>
+          <div class="water-count-badge" id="waterBadge" style="background:var(--amber-light);color:var(--amber-text)">0 / 10</div>
+        </div>
+        <div class="water-dots" id="waterDots"></div>
+        <div class="water-msg" id="waterMsg">10 more to reach your goal</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Daily note (optional)</div>
+      <textarea class="daily-note" id="dailyNote" rows="2" placeholder="Anything worth noting today…"></textarea>
+    </div>
+
+    <button class="save-btn" onclick="saveDay()">Save today's log</button>
+
+  </div>
+
+  <!-- STREAKS SCREEN -->
+  <div class="screen" id="screen-streak">
+
+    <div>
+      <div class="label">This week — meal compliance</div>
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+
+    <div>
+      <div class="label">Numbers</div>
+      <div class="card">
+        <div class="stat-row">
+          <div><div class="stat-name">Current streak</div></div>
+          <div class="stat-val val-green" id="statStreak">0 days 🔥</div>
+        </div>
+        <div class="stat-row">
+          <div><div class="stat-name">Longest streak</div></div>
+          <div class="stat-val" id="statLongest">0 days</div>
+        </div>
+        <div class="stat-row">
+          <div><div class="stat-name">This week meal compliance</div></div>
+          <div class="stat-val" id="statThisWeek">—</div>
+        </div>
+        <div class="stat-row">
+          <div><div class="stat-name">Last week meal compliance</div></div>
+          <div class="stat-val" id="statLastWeek">—</div>
+        </div>
+        <div class="stat-row">
+          <div><div class="stat-name">Workouts this week</div></div>
+          <div class="stat-val" id="statWorkouts">0</div>
+        </div>
+        <div class="stat-row">
+          <div><div class="stat-name">Avg water this week</div></div>
+          <div class="stat-val" id="statWater">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Workout — last 14 days</div>
+      <div class="card">
+        <div class="streak-dots" id="workoutStreak"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Water — last 7 days (goal: 10)</div>
+      <div class="card" id="waterBars"></div>
+    </div>
+
+  </div>
+
+  <!-- HISTORY SCREEN -->
+  <div class="screen" id="screen-history">
+
+    <div>
+      <div class="label">Month comparison</div>
+      <div class="card">
+        <div class="compare-row">
+          <div><div class="compare-name">Meal compliance</div><div class="compare-sub" id="compMealSub">—</div></div>
+          <div class="compare-right"><div class="compare-val" id="compMealVal">—</div><div class="compare-prev" id="compMealPrev"></div></div>
+        </div>
+        <div class="compare-row">
+          <div><div class="compare-name">Workouts / week</div><div class="compare-sub" id="compWorkSub">—</div></div>
+          <div class="compare-right"><div class="compare-val" id="compWorkVal">—</div><div class="compare-prev" id="compWorkPrev"></div></div>
+        </div>
+        <div class="compare-row">
+          <div><div class="compare-name">Avg water / day</div><div class="compare-sub" id="compWaterSub">—</div></div>
+          <div class="compare-right"><div class="compare-val" id="compWaterVal">—</div><div class="compare-prev" id="compWaterPrev"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Flag journal — partial & off-menu</div>
+      <div class="card" id="flagJournal">
+        <div class="empty-state">No flags logged yet. Great work!</div>
+      </div>
+    </div>
+
+    <button class="outline-btn" onclick="exportReport()">Export nutritionist report</button>
+
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-item active" id="nav-log" onclick="switchScreen('log')">
+      <div class="nav-icon">✏️</div>
+      <div class="nav-label">Log</div>
+    </div>
+    <div class="nav-item" id="nav-streak" onclick="switchScreen('streak')">
+      <div class="nav-icon">🔥</div>
+      <div class="nav-label">Streaks</div>
+    </div>
+    <div class="nav-item" id="nav-history" onclick="switchScreen('history')">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">History</div>
+    </div>
+  </nav>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WATER_GOAL = 10;
+const MEAL_KEYS = ['breakfast','lunch','dinner','snack'];
+const MEAL_LABELS = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', snack:'Snack' };
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getStorage() {
+  try { return JSON.parse(localStorage.getItem('healthLog') || '{}'); } catch(e) { return {}; }
+}
+function setStorage(data) {
+  try { localStorage.setItem('healthLog', JSON.stringify(data)); } catch(e) {}
+}
+
+function getTodayData() {
+  const all = getStorage();
+  const key = todayKey();
+  if (!all[key]) all[key] = {
+    meals: { breakfast: null, lunch: null, dinner: null, snack: null },
+    mealNotes: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    walk: null,
+    strength: null,
+    water: 0,
+    note: '',
+    saved: false
+  };
+  return { all, key, day: all[key] };
+}
+
+function saveTodayData(day) {
+  const { all, key } = getTodayData();
+  all[key] = day;
+  setStorage(all);
+}
+
+// STATE
+let state = getTodayData().day;
+
+function init() {
+  const d = new Date();
+  document.getElementById('headerDate').textContent = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  buildMealsCard();
+  buildWaterDots();
+  loadState();
+  updateScores();
+  updateStreakBadge();
+}
+
+function buildMealsCard() {
+  const card = document.getElementById('mealsCard');
+  card.innerHTML = '';
+  MEAL_KEYS.forEach(meal => {
+    card.innerHTML += `
+      <div class="meal-item" id="mealItem-${meal}">
+        <div class="meal-top">
+          <div>
+            <div class="meal-name">${MEAL_LABELS[meal]}</div>
+            <div class="meal-sub" id="mealSub-${meal}">Not logged yet</div>
+          </div>
+          <div class="meal-btns" id="mealBtns-${meal}">
+            <button class="pill pill-on" onclick="logMeal('${meal}','on')">On plan</button>
+            <button class="pill pill-partial" onclick="logMeal('${meal}','partial')">Partial</button>
+            <button class="pill pill-off" onclick="logMeal('${meal}','off')">Off menu</button>
+          </div>
+        </div>
+        <div class="flag-note" id="flagNote-${meal}">
+          <div class="flag-note-label">Brief note — what changed?</div>
+          <textarea rows="2" id="flagText-${meal}" placeholder="e.g. added bread, ordered takeout…" oninput="saveMealNote('${meal}', this.value)"></textarea>
+        </div>
+      </div>`;
+  });
+}
+
+function buildWaterDots() {
+  const container = document.getElementById('waterDots');
+  container.innerHTML = '';
+  for (let i = 0; i < WATER_GOAL; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'wdot';
+    dot.id = `wdot-${i}`;
+    dot.innerHTML = '💧';
+    dot.onclick = () => setWater(i + 1);
+    container.appendChild(dot);
+  }
+}
+
+function loadState() {
+  const { day } = getTodayData();
+  state = day;
+  MEAL_KEYS.forEach(meal => {
+    if (state.meals[meal]) applyMealUI(meal, state.meals[meal]);
+    if (state.mealNotes[meal]) {
+      const ta = document.getElementById(`flagText-${meal}`);
+      if (ta) ta.value = state.mealNotes[meal];
+    }
+  });
+  setWaterUI(state.water);
+  if (state.walk) {
+    document.querySelectorAll(`[data-group="walk"]`).forEach(el => {
+      if (el.dataset.val === state.walk) el.classList.add('active-green');
+    });
+  }
+  if (state.strength) {
+    document.querySelectorAll(`[data-group="strength"]`).forEach(el => {
+      if (el.dataset.val === state.strength) el.classList.add('active-blue');
+    });
+  }
+  const noteEl = document.getElementById('dailyNote');
+  if (noteEl && state.note) noteEl.value = state.note;
+}
+
+function logMeal(meal, type) {
+  state.meals[meal] = type;
+  applyMealUI(meal, type);
+  updateScores();
+  autosave();
+}
+
+function applyMealUI(meal, type) {
+  const btns = document.getElementById(`mealBtns-${meal}`);
+  const sub = document.getElementById(`mealSub-${meal}`);
+  const flag = document.getElementById(`flagNote-${meal}`);
+  const labels = { on: 'On plan', partial: 'Partial', off: 'Off menu' };
+  const classes = { on: 'pill-on', partial: 'pill-partial', off: 'pill-off' };
+  btns.innerHTML = `<button class="pill ${classes[type]}">${labels[type]}</button>`;
+  if (type === 'on') {
+    sub.textContent = 'Logged ✓';
+    flag.classList.remove('open');
+  } else {
+    sub.textContent = 'Flagged — add a note below';
+    flag.classList.add('open');
+  }
+}
+
+function saveMealNote(meal, val) {
+  state.mealNotes[meal] = val;
+  autosave();
+}
+
+function pickTog(el) {
+  const group = el.dataset.group;
+  const val = el.dataset.val;
+  const activeClass = group === 'walk' ? 'active-green' : 'active-blue';
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(t => t.classList.remove('active-green','active-blue'));
+  el.classList.add(activeClass);
+  state[group] = val;
+  updateScores();
+  autosave();
+}
+
+function setWater(n) {
+  state.water = n;
+  setWaterUI(n);
+  updateScores();
+  autosave();
+}
+
+function setWaterUI(n) {
+  for (let i = 0; i < WATER_GOAL; i++) {
+    const dot = document.getElementById(`wdot-${i}`);
+    if (dot) dot.classList.toggle('filled', i < n);
+  }
+  const badge = document.getElementById('waterBadge');
+  const msg = document.getElementById('waterMsg');
+  badge.textContent = `${n} / ${WATER_GOAL}`;
+  const rem = WATER_GOAL - n;
+  if (n >= WATER_GOAL) {
+    badge.style.background = 'var(--green-light)'; badge.style.color = 'var(--green-text)';
+    msg.textContent = 'Goal reached! Great work.'; msg.className = 'water-msg goal';
+  } else {
+    badge.style.background = 'var(--amber-light)'; badge.style.color = 'var(--amber-text)';
+    msg.textContent = `${rem} more to reach your goal`; msg.className = 'water-msg';
+  }
+  document.getElementById('scoreWater').textContent = `${n}/10`;
+}
+
+function updateScores() {
+  const onCount = MEAL_KEYS.filter(m => state.meals[m] === 'on').length;
+  document.getElementById('scoreMeals').textContent = `${onCount}/4`;
+
+  const walk = state.walk;
+  const strength = state.strength;
+  let workoutText = '—';
+  if (walk && walk !== 'none' && strength === 'yes') workoutText = 'Walk+ST';
+  else if (walk && walk !== 'none') workoutText = walk === 'uphill' ? 'Uphill' : 'Walk';
+  else if (strength === 'yes') workoutText = 'Strength';
+  document.getElementById('scoreWorkout').textContent = workoutText;
+}
+
+function autosave() {
+  const noteEl = document.getElementById('dailyNote');
+  if (noteEl) state.note = noteEl.value;
+  saveTodayData(state);
+}
+
+function saveDay() {
+  autosave();
+  state.saved = true;
+  saveTodayData(state);
+  updateStreakBadge();
+  showToast('Day logged! Keep the streak alive 🔥');
+  if (document.getElementById('screen-streak').classList.contains('active')) buildStreakScreen();
+  if (document.getElementById('screen-history').classList.contains('active')) buildHistoryScreen();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function updateStreakBadge() {
+  const streak = calcStreak();
+  document.getElementById('streakBadge').textContent = `🔥 ${streak}-day streak`;
+}
+
+function calcStreak() {
+  const all = getStorage();
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (all[key] && all[key].saved) streak++;
+    else if (i > 0) break;
+  }
+  return streak;
+}
+
+function calcLongestStreak() {
+  const all = getStorage();
+  const keys = Object.keys(all).filter(k => all[k].saved).sort();
+  let longest = 0, cur = 0, prev = null;
+  keys.forEach(k => {
+    if (!prev) { cur = 1; }
+    else {
+      const prevD = new Date(prev); const curD = new Date(k);
+      const diff = (curD - prevD) / 86400000;
+      cur = diff === 1 ? cur + 1 : 1;
+    }
+    longest = Math.max(longest, cur);
+    prev = k;
+  });
+  return longest;
+}
+
+function getWeekKeys(offset = 0) {
+  const keys = [];
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((dow + 6) % 7) - offset * 7);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+  return keys;
+}
+
+function buildStreakScreen() {
+  const all = getStorage();
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayKey_ = todayKey();
+  const thisWeek = getWeekKeys(0);
+
+  // week grid
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  thisWeek.forEach((k, i) => {
+    const day = all[k];
+    const onCount = day ? MEAL_KEYS.filter(m => day.meals[m] === 'on').length : null;
+    let cls = 'wk-empty';
+    let val = '—';
+    if (day && day.saved) {
+      val = `${onCount}/4`;
+      cls = onCount >= 3 ? 'wk-on' : onCount >= 2 ? 'wk-part' : 'wk-empty';
+    }
+    const todayCls = k === todayKey_ ? 'wk-today' : '';
+    grid.innerHTML += `<div class="wk-cell ${cls} ${todayCls}"><div class="wk-day">${dayNames[i]}</div><div class="wk-val">${val}</div></div>`;
+  });
+
+  // stats
+  const streak = calcStreak();
+  const longest = calcLongestStreak();
+  document.getElementById('statStreak').textContent = `${streak} days 🔥`;
+  document.getElementById('statLongest').textContent = `${longest} days`;
+
+  function weekCompliance(keys) {
+    const logged = keys.filter(k => all[k] && all[k].saved);
+    if (!logged.length) return null;
+    const total = logged.length * 4;
+    const on = logged.reduce((s, k) => s + MEAL_KEYS.filter(m => all[k].meals[m] === 'on').length, 0);
+    return Math.round(on / total * 100);
+  }
+  const tw = weekCompliance(getWeekKeys(0));
+  const lw = weekCompliance(getWeekKeys(1));
+  document.getElementById('statThisWeek').textContent = tw !== null ? `${tw}%` : '—';
+  document.getElementById('statLastWeek').textContent = lw !== null ? `${lw}%` : '—';
+
+  const workoutsThisWeek = thisWeek.filter(k => all[k] && (all[k].walk && all[k].walk !== 'none' || all[k].strength === 'yes')).length;
+  document.getElementById('statWorkouts').textContent = `${workoutsThisWeek} / 4 target`;
+
+  const waterDays = thisWeek.filter(k => all[k] && all[k].saved);
+  const avgWater = waterDays.length ? Math.round(waterDays.reduce((s,k) => s + (all[k].water||0), 0) / waterDays.length * 10) / 10 : null;
+  document.getElementById('statWater').textContent = avgWater !== null ? `${avgWater} / 10` : '—';
+
+  // 14-day workout streak dots
+  const sdots = document.getElementById('workoutStreak');
+  sdots.innerHTML = '';
+  const shortDays = ['M','T','W','T','F','S','S'];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const hasWorkout = all[k] && (all[k].walk && all[k].walk !== 'none' || all[k].strength === 'yes');
+    const dot = document.createElement('div');
+    dot.className = `sdot ${hasWorkout ? 'sdot-on' : 'sdot-off'} ${k === todayKey_ ? 'sdot-today' : ''}`;
+    dot.textContent = shortDays[d.getDay() === 0 ? 6 : d.getDay()-1];
+    sdots.appendChild(dot);
+  }
+
+  // water bars
+  const wb = document.getElementById('waterBars');
+  wb.innerHTML = '';
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    last7.push({ label: dayNames[d.getDay() === 0 ? 6 : d.getDay()-1].slice(0,3), val: all[k] ? (all[k].water || 0) : 0 });
+  }
+  last7.forEach(({ label, val }) => {
+    const pct = Math.round(val / WATER_GOAL * 100);
+    const color = val >= WATER_GOAL ? 'var(--green)' : 'var(--blue)';
+    wb.innerHTML += `<div class="mini-bar-row">
+      <div class="mini-bar-label">${label}</div>
+      <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="mini-bar-num">${val}/10</div>
+    </div>`;
+  });
+}
+
+function buildHistoryScreen() {
+  const all = getStorage();
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+  const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+  const lastYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+
+  function monthStats(year, month) {
+    const days = Object.keys(all).filter(k => {
+      const d = new Date(k);
+      return d.getFullYear() === year && d.getMonth() === month && all[k].saved;
+    });
+    if (!days.length) return null;
+    const totalMeals = days.length * 4;
+    const onMeals = days.reduce((s,k) => s + MEAL_KEYS.filter(m => all[k].meals[m] === 'on').length, 0);
+    const compliance = Math.round(onMeals / totalMeals * 100);
+    const workouts = days.filter(k => all[k].walk && all[k].walk !== 'none' || all[k].strength === 'yes').length;
+    const weeksInMonth = days.length / 7;
+    const workoutsPerWeek = weeksInMonth > 0 ? Math.round(workouts / weeksInMonth * 10) / 10 : workouts;
+    const avgWater = Math.round(days.reduce((s,k) => s + (all[k].water||0), 0) / days.length * 10) / 10;
+    return { compliance, workoutsPerWeek, avgWater, days: days.length };
+  }
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const tm = monthStats(thisYear, thisMonth);
+  const lm = monthStats(lastYear, lastMonth);
+
+  function setCompare(valId, prevId, subId, current, prev, suffix, monthLabel, prevLabel) {
+    const valEl = document.getElementById(valId);
+    const prevEl = document.getElementById(prevId);
+    const subEl = document.getElementById(subId);
+    if (current === null) { valEl.textContent = '—'; prevEl.textContent = ''; subEl.textContent = 'No data yet'; return; }
+    subEl.textContent = `${monthLabel} vs ${prevLabel}`;
+    const val = suffix === '%' ? `${current}%` : `${current}`;
+    valEl.textContent = val;
+    if (prev !== null) {
+      const diff = current - prev;
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      valEl.className = `compare-val ${diff > 0 ? 'val-green' : diff < 0 ? 'val-red' : ''}`;
+      valEl.textContent = `${val} ${arrow}`;
+      prevEl.textContent = `was ${suffix === '%' ? prev + '%' : prev}`;
+    } else {
+      prevEl.textContent = 'no prior data';
+    }
+  }
+
+  setCompare('compMealVal','compMealPrev','compMealSub', tm?.compliance ?? null, lm?.compliance ?? null, '%', monthNames[thisMonth], monthNames[lastMonth]);
+  setCompare('compWorkVal','compWorkPrev','compWorkSub', tm?.workoutsPerWeek ?? null, lm?.workoutsPerWeek ?? null, '', monthNames[thisMonth], monthNames[lastMonth]);
+  setCompare('compWaterVal','compWaterPrev','compWaterSub', tm?.avgWater ?? null, lm?.avgWater ?? null, '', monthNames[thisMonth], monthNames[lastMonth]);
+
+  // flag journal
+  const journal = document.getElementById('flagJournal');
+  const flaggedDays = Object.keys(all).filter(k => {
+    const d = all[k];
+    return d && MEAL_KEYS.some(m => (d.meals[m] === 'partial' || d.meals[m] === 'off') && d.mealNotes[m]);
+  }).sort().reverse().slice(0, 20);
+
+  if (!flaggedDays.length) {
+    journal.innerHTML = '<div class="empty-state">No flags logged yet. Great work!</div>';
+    return;
+  }
+  journal.innerHTML = '';
+  const pillMap = { partial: '<span class="pill pill-partial" style="font-size:10px;padding:2px 8px">Partial</span>', off: '<span class="pill pill-off" style="font-size:10px;padding:2px 8px">Off menu</span>' };
+  flaggedDays.forEach(k => {
+    const d = new Date(k);
+    const dateStr = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const day = all[k];
+    MEAL_KEYS.forEach(meal => {
+      const type = day.meals[meal];
+      const note = day.mealNotes[meal];
+      if ((type === 'partial' || type === 'off') && note) {
+        journal.innerHTML += `<div class="flag-entry">
+          <div class="flag-entry-header">
+            <span class="flag-entry-date">${dateStr} — ${MEAL_LABELS[meal]}</span>
+            ${pillMap[type]}
+          </div>
+          <div class="flag-entry-note">${note}</div>
+        </div>`;
+      }
+    });
+  });
+}
+
+function exportReport() {
+  const all = getStorage();
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const days = Object.keys(all).filter(k => {
+    const d = new Date(k); return d.getFullYear() === thisYear && d.getMonth() === thisMonth && all[k].saved;
+  }).sort();
+
+  if (!days.length) { showToast('No data to export yet.'); return; }
+
+  const totalMeals = days.length * 4;
+  const onMeals = days.reduce((s,k) => s + MEAL_KEYS.filter(m => all[k].meals[m] === 'on').length, 0);
+  const partialMeals = days.reduce((s,k) => s + MEAL_KEYS.filter(m => all[k].meals[m] === 'partial').length, 0);
+  const offMeals = days.reduce((s,k) => s + MEAL_KEYS.filter(m => all[k].meals[m] === 'off').length, 0);
+  const compliance = Math.round(onMeals / totalMeals * 100);
+  const avgWater = (days.reduce((s,k) => s + (all[k].water||0), 0) / days.length).toFixed(1);
+  const workouts = days.filter(k => (all[k].walk && all[k].walk !== 'none') || all[k].strength === 'yes').length;
+
+  let report = `HEALTH REPORT — ${monthNames[thisMonth]} ${thisYear}\n`;
+  report += `Generated: ${now.toLocaleDateString()}\n`;
+  report += `Days logged: ${days.length}\n\n`;
+  report += `MEAL COMPLIANCE\n`;
+  report += `On plan: ${onMeals} meals (${compliance}%)\n`;
+  report += `Partial: ${partialMeals} meals\n`;
+  report += `Off menu: ${offMeals} meals\n\n`;
+  report += `WATER\nAvg per day: ${avgWater} / 10 glasses\n\n`;
+  report += `EXERCISE\nWorkout days: ${workouts}\n\n`;
+  report += `FLAG JOURNAL\n`;
+  days.forEach(k => {
+    const d = new Date(k);
+    const dateStr = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    MEAL_KEYS.forEach(meal => {
+      const type = all[k].meals[meal];
+      const note = all[k].mealNotes[meal];
+      if ((type === 'partial' || type === 'off') && note) {
+        report += `${dateStr} — ${MEAL_LABELS[meal]} (${type === 'off' ? 'Off menu' : 'Partial'}): ${note}\n`;
+      }
+    });
+  });
+
+  const blob = new Blob([report], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `health-report-${monthNames[thisMonth].toLowerCase()}-${thisYear}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Report downloaded!');
+}
+
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`nav-${name}`).classList.add('active');
+  if (name === 'streak') buildStreakScreen();
+  if (name === 'history') buildHistoryScreen();
+}
+
+document.getElementById('dailyNote').addEventListener('input', function() {
+  state.note = this.value;
+  autosave();
+});
+
+init();
+</script>
+</body>
+</html>
