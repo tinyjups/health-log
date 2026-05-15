@@ -599,6 +599,14 @@ function buildMealsCard() {
   const card = document.getElementById('mealsCard');
   card.innerHTML = '';
   MEAL_KEYS.forEach(meal => {
+    const isSnack = meal === 'snack';
+    const btnHtml = isSnack
+      ? `<button class="pill pill-on" onclick="logMeal('${meal}','on')">On plan</button>
+         <button class="pill pill-off" onclick="logMeal('${meal}','off')">Off menu</button>
+         <button class="pill pill-neutral" onclick="logMeal('${meal}','none')">None</button>`
+      : `<button class="pill pill-on" onclick="logMeal('${meal}','on')">On plan</button>
+         <button class="pill pill-partial" onclick="logMeal('${meal}','partial')">Partial</button>
+         <button class="pill pill-off" onclick="logMeal('${meal}','off')">Off menu</button>`;
     card.innerHTML += `
       <div class="meal-item" id="mealItem-${meal}">
         <div class="meal-top">
@@ -606,15 +614,11 @@ function buildMealsCard() {
             <div class="meal-name">${MEAL_LABELS[meal]}</div>
             <div class="meal-sub" id="mealSub-${meal}">Not logged yet</div>
           </div>
-          <div class="meal-btns" id="mealBtns-${meal}">
-            <button class="pill pill-on" onclick="logMeal('${meal}','on')">On plan</button>
-            <button class="pill pill-partial" onclick="logMeal('${meal}','partial')">Partial</button>
-            <button class="pill pill-off" onclick="logMeal('${meal}','off')">Off menu</button>
-          </div>
+          <div class="meal-btns" id="mealBtns-${meal}">${btnHtml}</div>
         </div>
         <div class="flag-note" id="flagNote-${meal}">
           <div class="flag-note-label">Brief note — what changed?</div>
-          <textarea rows="2" id="flagText-${meal}" placeholder="e.g. added bread, ordered takeout…" oninput="saveMealNote('${meal}', this.value)"></textarea>
+          <textarea rows="2" id="flagText-${meal}" placeholder="e.g. had chips instead, skipped snack…" oninput="saveMealNote('${meal}', this.value)"></textarea>
         </div>
       </div>`;
   });
@@ -669,11 +673,11 @@ function applyMealUI(meal, type) {
   const btns = document.getElementById(`mealBtns-${meal}`);
   const sub = document.getElementById(`mealSub-${meal}`);
   const flag = document.getElementById(`flagNote-${meal}`);
-  const labels = { on: 'On plan', partial: 'Partial', off: 'Off menu' };
-  const classes = { on: 'pill-on', partial: 'pill-partial', off: 'pill-off' };
+  const labels = { on: 'On plan', partial: 'Partial', off: 'Off menu', none: 'None' };
+  const classes = { on: 'pill-on', partial: 'pill-partial', off: 'pill-off', none: 'pill-neutral' };
   btns.innerHTML = `<button class="pill ${classes[type]}">${labels[type]}</button>`;
-  if (type === 'on') {
-    sub.textContent = 'Logged ✓';
+  if (type === 'on' || type === 'none') {
+    sub.textContent = type === 'on' ? 'Logged ✓' : 'Skipped';
     flag.classList.remove('open');
   } else {
     sub.textContent = 'Flagged — add a note below';
@@ -724,8 +728,11 @@ function setWaterUI(n) {
 }
 
 function updateScores() {
+  // snack 'none' doesn't count against the score — score is out of 3 if snack is none, else 4
+  const snackIsNone = state.meals['snack'] === 'none';
+  const total = snackIsNone ? 3 : 4;
   const onCount = MEAL_KEYS.filter(m => state.meals[m] === 'on').length;
-  document.getElementById('scoreMeals').textContent = `${onCount}/4`;
+  document.getElementById('scoreMeals').textContent = `${onCount}/${total}`;
 
   const walk = state.walk;
   const strength = state.strength;
