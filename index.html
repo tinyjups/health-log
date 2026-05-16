@@ -71,6 +71,13 @@
   .header-top { display: flex; align-items: center; justify-content: space-between; }
   .header-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); }
   .header-date { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .date-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .date-nav-btn { background: none; border: 1px solid var(--border); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: var(--text2); transition: background 0.15s; }
+  .date-nav-btn:active { background: var(--surface2); }
+  .date-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .date-nav-label { font-size: 13px; font-weight: 500; color: var(--text); text-align: center; flex: 1; }
+  .date-nav-today { font-size: 10px; color: var(--text3); text-align: center; margin-top: 1px; }
+  .past-banner { background: var(--amber-light); color: var(--amber-text); font-size: 12px; font-weight: 500; padding: 8px 14px; border-radius: 8px; text-align: center; display: none; }
   .streak-badge {
     background: var(--green-light);
     color: var(--green-text);
@@ -381,10 +388,20 @@
       </div>
       <div class="streak-badge" id="streakBadge">🔥 0-day streak</div>
     </div>
+    <div class="date-nav">
+      <button class="date-nav-btn" id="prevDayBtn" onclick="changeDay(-1)">‹</button>
+      <div>
+        <div class="date-nav-label" id="dateNavLabel"></div>
+        <div class="date-nav-today" id="dateNavSub"></div>
+      </div>
+      <button class="date-nav-btn" id="nextDayBtn" onclick="changeDay(1)">›</button>
+    </div>
   </div>
 
   <!-- LOG SCREEN -->
   <div class="screen active" id="screen-log">
+
+    <div class="past-banner" id="pastBanner">📅 Editing a past entry — changes save automatically</div>
 
     <div>
       <div class="label">Today's score</div>
@@ -551,7 +568,16 @@ const MEAL_LABELS = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', sna
 
 function todayKey() {
   const d = new Date();
+  return dateToKey(d);
+}
+
+function dateToKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function keyToDate(key) {
+  const [y,m,d] = key.split('-').map(Number);
+  return new Date(y, m-1, d);
 }
 
 function getStorage() {
@@ -561,10 +587,8 @@ function setStorage(data) {
   try { localStorage.setItem('healthLog', JSON.stringify(data)); } catch(e) {}
 }
 
-function getTodayData() {
-  const all = getStorage();
-  const key = todayKey();
-  if (!all[key]) all[key] = {
+function emptyDay() {
+  return {
     meals: { breakfast: null, lunch: null, dinner: null, snack: null },
     mealNotes: { breakfast: '', lunch: '', dinner: '', snack: '' },
     walk: null,
@@ -573,21 +597,60 @@ function getTodayData() {
     note: '',
     saved: false
   };
+}
+
+function getDataForKey(key) {
+  const all = getStorage();
+  if (!all[key]) all[key] = emptyDay();
   return { all, key, day: all[key] };
 }
 
-function saveTodayData(day) {
-  const { all, key } = getTodayData();
+function saveDataForKey(key, day) {
+  const all = getStorage();
   all[key] = day;
   setStorage(all);
 }
 
-// STATE
-let state = getTodayData().day;
+// STATE — activeKey drives which day is shown
+let activeKey = todayKey();
+let state = getDataForKey(activeKey).day;
+
+function changeDay(delta) {
+  const d = keyToDate(activeKey);
+  d.setDate(d.getDate() + delta);
+  const newKey = dateToKey(d);
+  // don't go into the future
+  if (newKey > todayKey()) return;
+  activeKey = newKey;
+  state = getDataForKey(activeKey).day;
+  refreshLogScreen();
+}
+
+function refreshLogScreen() {
+  updateDateNav();
+  buildMealsCard();
+  buildWaterDots();
+  loadState();
+  updateScores();
+  updateStreakBadge();
+}
+
+function updateDateNav() {
+  const isToday = activeKey === todayKey();
+  const d = keyToDate(activeKey);
+  document.getElementById('dateNavLabel').textContent = d.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+  document.getElementById('dateNavSub').textContent = isToday ? 'Today' : keyToDate(activeKey).getFullYear() !== new Date().getFullYear() ? activeKey : '';
+  document.getElementById('nextDayBtn').disabled = isToday;
+  document.getElementById('pastBanner').style.display = isToday ? 'none' : 'block';
+  // update section label
+  const scoreLabel = document.querySelector('#screen-log .label');
+  if (scoreLabel) scoreLabel.textContent = isToday ? "Today's score" : "Day score";
+}
 
 function init() {
-  const d = new Date();
-  document.getElementById('headerDate').textContent = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  activeKey = todayKey();
+  state = getDataForKey(activeKey).day;
+  updateDateNav();
   buildMealsCard();
   buildWaterDots();
   loadState();
@@ -638,7 +701,7 @@ function buildWaterDots() {
 }
 
 function loadState() {
-  const { day } = getTodayData();
+  const { day } = getDataForKey(activeKey);
   state = day;
   MEAL_KEYS.forEach(meal => {
     if (state.meals[meal]) applyMealUI(meal, state.meals[meal]);
@@ -746,13 +809,13 @@ function updateScores() {
 function autosave() {
   const noteEl = document.getElementById('dailyNote');
   if (noteEl) state.note = noteEl.value;
-  saveTodayData(state);
+  saveDataForKey(activeKey, state);
 }
 
 function saveDay() {
   autosave();
   state.saved = true;
-  saveTodayData(state);
+  saveDataForKey(activeKey, state);
   updateStreakBadge();
   showToast('Day logged! Keep the streak alive 🔥');
   if (document.getElementById('screen-streak').classList.contains('active')) buildStreakScreen();
